@@ -13,10 +13,12 @@ first (see README.md).
 """
 
 import sqlite3
+import time
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 from fetch_data import init_db, refresh_all_data
 
@@ -73,6 +75,37 @@ if st.sidebar.button("🔄 Refresh data now"):
     run_refresh()
 if DB_PATH.exists():
     st.sidebar.caption(f"Last refreshed: {pd.Timestamp.fromtimestamp(DB_PATH.stat().st_mtime):%Y-%m-%d %H:%M}")
+st.sidebar.caption(
+    "If a GitHub Actions workflow is set up in this repo, data also "
+    "refreshes automatically in the background on a schedule — you don't "
+    "need to keep this page open or click refresh for that."
+)
+
+st.sidebar.divider()
+auto_refresh_on = st.sidebar.checkbox(
+    "Auto-refresh while this page is open",
+    value=False,
+    help=(
+        "Checks the FPL API on a timer and pulls new data if it's changed. "
+        "Only works while someone actually has this page open in a browser "
+        "tab — it won't update in the background if nobody's viewing it."
+    ),
+)
+if auto_refresh_on:
+    interval_minutes = st.sidebar.slider(
+        "Check every (minutes)", min_value=2, max_value=30, value=10
+    )
+    # Reruns this script automatically on a timer while the tab stays open.
+    st_autorefresh(interval=interval_minutes * 60 * 1000, key="form_autorefresh")
+
+    db_age_seconds = (
+        time.time() - DB_PATH.stat().st_mtime if DB_PATH.exists() else float("inf")
+    )
+    if db_age_seconds >= interval_minutes * 60:
+        run_refresh()
+    else:
+        minutes_left = round((interval_minutes * 60 - db_age_seconds) / 60, 1)
+        st.sidebar.caption(f"Next auto-check in ~{minutes_left} min")
 
 
 @st.cache_data(ttl=300)

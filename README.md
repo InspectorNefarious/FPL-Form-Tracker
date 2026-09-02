@@ -51,6 +51,36 @@ Note: Streamlit Community Cloud's storage isn't guaranteed to persist
 forever between app restarts, so if the dashboard ever opens with old or
 missing data, just hit "🔄 Refresh data now" in the sidebar.
 
+## Option C: keep data fresh automatically in the background (recommended, works alongside Option B)
+
+Options A and B only fetch new data when someone runs the script or opens
+the app. This option adds a scheduled job that refreshes the data on its
+own, on a timer, whether or not anyone is looking at the dashboard —
+using GitHub Actions, which is free and needs no extra account.
+
+**This repo already includes the workflow file** at
+`.github/workflows/refresh-data.yml`. To turn it on:
+
+1. Make sure that file (and the rest of this project) is uploaded to your
+   GitHub repo — GitHub preserves the `.github/workflows/` folder structure
+   automatically when you upload it.
+2. In your repo, go to **Settings → Actions → General**, scroll to
+   **Workflow permissions**, select **"Read and write permissions"**, and
+   click **Save**. (This is required once — it lets the scheduled job
+   commit the refreshed data back to your repo.)
+3. Go to the **Actions** tab in your repo. You should see "Refresh FPL
+   data" listed. Click it, then **"Run workflow"** to trigger it once
+   manually and confirm it works.
+4. From then on, it runs automatically every hour (see the `cron:` line in
+   the workflow file if you want a different schedule — e.g. every 15
+   minutes on a matchday).
+
+Each time it runs, it fetches the latest data and — if anything changed —
+commits an updated `fpl_form.db` to your repo. Streamlit Community Cloud
+watches your repo and automatically redeploys on every new commit, so your
+live dashboard picks up the fresh data within a minute or two, with nobody
+needing to click anything.
+
 ## Notes / limitations
 
 - The FPL API is undocumented and unofficial — endpoints or fields could
@@ -69,5 +99,7 @@ missing data, just hit "🔄 Refresh data now" in the sidebar.
 - `fetch_data.py` — pulls data from the FPL API into `fpl_form.db`
 - `app.py` — Streamlit dashboard that reads from `fpl_form.db`
 - `requirements.txt` — Python dependencies
-- `fpl_form.db` — created after your first `fetch_data.py` run (not
-  included — it's your local data)
+- `.github/workflows/refresh-data.yml` — scheduled job that keeps
+  `fpl_form.db` fresh automatically (see Option C above)
+- `fpl_form.db` — created after your first `fetch_data.py` run, or by the
+  scheduled workflow once it's enabled

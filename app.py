@@ -70,7 +70,10 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
             t.name AS team,
             pos.singular_name AS position,
             p.now_cost / 10.0 AS price,
-            p.status
+            p.status,
+            p.fpl_form,
+            p.points_per_game,
+            p.selected_by_percent
         FROM players p
         JOIN teams t ON t.id = p.team_id
         JOIN positions pos ON pos.id = p.position_id
@@ -161,6 +164,12 @@ if search:
 table = table.sort_values("form_points", ascending=False)
 
 st.subheader(f"Form over last {form_window} gameweek(s) — GW{recent_gws[0]}\u2013{recent_gws[-1]}")
+st.caption(
+    "\"FPL form\" is the official stat from fantasy.premierleague.com "
+    "(avg points/match, last 30 days). \"Form pts\" columns are this app's "
+    "own totals/averages over the gameweek window you pick above — they "
+    "won't match FPL's scale, but you can compare them side by side."
+)
 st.dataframe(
     table[
         [
@@ -168,6 +177,7 @@ st.dataframe(
             "team",
             "position",
             "price",
+            "fpl_form",
             "form_points",
             "form_avg",
             "gws_played",
@@ -182,6 +192,7 @@ st.dataframe(
             "team": "Team",
             "position": "Position",
             "price": "Price (\u00a3m)",
+            "fpl_form": "FPL form",
             "form_points": "Form pts (total)",
             "form_avg": "Form pts (avg/gw)",
             "gws_played": "GWs played",

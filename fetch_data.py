@@ -80,6 +80,9 @@ def init_db(conn: sqlite3.Connection) -> None:
             position_id INTEGER,
             now_cost INTEGER,
             status TEXT,
+            fpl_form REAL,
+            points_per_game REAL,
+            selected_by_percent REAL,
             FOREIGN KEY (team_id) REFERENCES teams (id),
             FOREIGN KEY (position_id) REFERENCES positions (id)
         );
@@ -114,6 +117,18 @@ def init_db(conn: sqlite3.Connection) -> None:
     )
     conn.commit()
 
+    # Migration for databases created before fpl_form/points_per_game/
+    # selected_by_percent existed on the players table.
+    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(players)")}
+    for col, col_type in (
+        ("fpl_form", "REAL"),
+        ("points_per_game", "REAL"),
+        ("selected_by_percent", "REAL"),
+    ):
+        if col not in existing_cols:
+            conn.execute(f"ALTER TABLE players ADD COLUMN {col} {col_type}")
+    conn.commit()
+
 
 def load_bootstrap(conn: sqlite3.Connection) -> list[int]:
     """Load teams, positions, players, gameweeks. Returns finished gameweek IDs."""
@@ -137,8 +152,8 @@ def load_bootstrap(conn: sqlite3.Connection) -> list[int]:
     conn.executemany(
         """INSERT OR REPLACE INTO players
            (id, first_name, second_name, web_name, team_id, position_id,
-            now_cost, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            now_cost, status, fpl_form, points_per_game, selected_by_percent)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         [
             (
                 p["id"],
@@ -149,6 +164,13 @@ def load_bootstrap(conn: sqlite3.Connection) -> list[int]:
                 p["element_type"],
                 p["now_cost"],
                 p["status"],
+                float(p["form"]) if p.get("form") not in (None, "") else None,
+                float(p["points_per_game"])
+                if p.get("points_per_game") not in (None, "")
+                else None,
+                float(p["selected_by_percent"])
+                if p.get("selected_by_percent") not in (None, "")
+                else None,
             )
             for p in data["elements"]
         ],

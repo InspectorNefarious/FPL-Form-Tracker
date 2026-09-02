@@ -1,0 +1,47 @@
+name: Refresh FPL data
+
+# Runs independently of the Streamlit app — keeps fpl_form.db up to date
+# even if nobody has the dashboard open. Streamlit Community Cloud watches
+# this repo and automatically redeploys/reloads whenever a new commit
+# lands, so a fresh fpl_form.db here means a fresh dashboard.
+
+on:
+  schedule:
+    # Every hour, on the hour, UTC. Adjust as you like — e.g. '*/15 * * * *'
+    # for every 15 minutes on a busy matchday, though FPL's "form" stat
+    # itself only actually changes once a gameweek's points/bonus are
+    # finalized (usually a few hours after the last match of the gameweek).
+    - cron: "0 * * * *"
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to commit the updated database back to the repo
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch latest FPL data
+        run: python fetch_data.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "fpl-form-bot"
+          git config user.email "actions@github.com"
+          git add fpl_form.db
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-refresh FPL data"
+            git push
+          fi

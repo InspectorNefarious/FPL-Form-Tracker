@@ -18,11 +18,29 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from fetch_data import refresh_all_data
+from fetch_data import init_db, refresh_all_data
 
 DB_PATH = Path(__file__).parent / "fpl_form.db"
 
 st.set_page_config(page_title="PL Player Form Tracker", layout="wide")
+
+
+def ensure_schema() -> None:
+    """
+    Create tables / add any missing columns before we query anything.
+
+    This runs on every page load, not just when fpl_form.db is missing —
+    otherwise a database left over from a previous version of the app
+    (e.g. from before a new column was added) would silently keep its old
+    schema forever, since redeploying pulls new code but doesn't touch
+    files that aren't tracked in git (like fpl_form.db).
+    """
+    conn = sqlite3.connect(DB_PATH)
+    init_db(conn)
+    conn.close()
+
+
+ensure_schema()
 
 
 def run_refresh() -> None:

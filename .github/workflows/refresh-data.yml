@@ -7,10 +7,7 @@ name: Refresh FPL data
 
 on:
   schedule:
-    # Every hour, on the hour, UTC. Adjust as you like — e.g. '*/15 * * * *'
-    # for every 15 minutes on a busy matchday, though FPL's "form" stat
-    # itself only actually changes once a gameweek's points/bonus are
-    # finalized (usually a few hours after the last match of the gameweek).
+    # Every hour, on the hour, UTC.
     - cron: "0 * * * *"
   workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
 
@@ -21,10 +18,10 @@ jobs:
       contents: write   # needed to commit the updated database back to the repo
     steps:
       - name: Check out repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 

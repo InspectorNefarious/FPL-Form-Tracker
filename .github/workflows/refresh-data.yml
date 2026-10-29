@@ -13,7 +13,8 @@ on:
 
 jobs:
   refresh:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # was: ubuntu-latest
+
     permissions:
       contents: write   # needed to commit the updated database back to the repo
     steps:
